@@ -1,29 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '@/hooks/useWallet';
-import { deployContract, isOwner, getOwner } from '@/lib/mockBlockchain';
+import {
+  getContractAddress,
+  setContractAddress,
+  getOwner,
+  isOwner,
+} from '@/lib/contractService';
 import { Button } from '@/components/ui/button';
-import { Shield, Vote, Wallet, Hexagon, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Shield, Vote, Wallet, Hexagon, ArrowRight, Link2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Index() {
   const { address, connect, isConnecting } = useWallet();
   const navigate = useNavigate();
-  const [deployed, setDeployed] = useState(!!getOwner());
+  const [contractAddr, setContractAddr] = useState(getContractAddress() || '');
+  const [isConnected, setIsConnected] = useState(!!getContractAddress());
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [owner, setOwner] = useState<string | null>(null);
+  const [inputAddr, setInputAddr] = useState('');
 
-  const handleDeploy = async () => {
-    const addr = address || (await connect());
-    if (addr) {
-      deployContract(addr);
-      setDeployed(true);
+  // Check ownership when address or contract changes
+  useEffect(() => {
+    async function check() {
+      if (!isConnected || !address) {
+        setIsAdmin(false);
+        return;
+      }
+      try {
+        const admin = await isOwner(address);
+        setIsAdmin(admin);
+        const o = await getOwner();
+        setOwner(o);
+      } catch {
+        setIsAdmin(false);
+      }
     }
-  };
+    check();
+  }, [address, isConnected]);
 
-  const owner = getOwner();
-  const isAdmin = address ? isOwner(address) : false;
+  const handleConnectContract = () => {
+    if (!inputAddr || !inputAddr.startsWith('0x')) {
+      toast.error('Enter a valid contract address');
+      return;
+    }
+    setContractAddress(inputAddr);
+    setContractAddr(inputAddr);
+    setIsConnected(true);
+    toast.success('Contract connected!');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero */}
       <div className="flex-1 flex items-center justify-center px-6 py-20">
         <div className="max-w-3xl mx-auto text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border text-sm text-muted-foreground">
@@ -42,19 +72,38 @@ export default function Index() {
             and decentralized vote storage on Ethereum.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col gap-4 items-center">
+            {/* Step 1: Connect wallet */}
             {!address ? (
               <Button size="lg" onClick={connect} disabled={isConnecting} className="glow-primary text-lg px-8 py-6">
                 <Wallet className="w-5 h-5 mr-2" />
                 {isConnecting ? 'Connecting...' : 'Connect Wallet'}
               </Button>
-            ) : !deployed ? (
-              <Button size="lg" onClick={handleDeploy} className="glow-primary text-lg px-8 py-6">
-                <Shield className="w-5 h-5 mr-2" />
-                Deploy Contract
-              </Button>
+            ) : !isConnected ? (
+              /* Step 2: Connect to deployed contract */
+              <div className="space-y-4 w-full max-w-md">
+                <div className="space-y-2 text-left">
+                  <Label>Contract Address (deployed via Forge)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={inputAddr}
+                      onChange={(e) => setInputAddr(e.target.value)}
+                      placeholder="0x..."
+                      className="font-mono text-sm"
+                    />
+                    <Button onClick={handleConnectContract} className="glow-primary shrink-0">
+                      <Link2 className="w-4 h-4 mr-1" />
+                      Connect
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Deploy the contract with Forge first, then paste the address here.
+                </p>
+              </div>
             ) : (
-              <>
+              /* Step 3: Navigate */
+              <div className="flex flex-col sm:flex-row gap-4">
                 {isAdmin && (
                   <Button size="lg" onClick={() => navigate('/admin')} className="glow-primary text-lg px-8 py-6">
                     <Shield className="w-5 h-5 mr-2" />
@@ -67,7 +116,7 @@ export default function Index() {
                   Cast Vote
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-              </>
+              </div>
             )}
           </div>
 
@@ -97,10 +146,11 @@ export default function Index() {
         </div>
       </div>
 
-      {owner && (
+      {isConnected && (
         <div className="border-t border-border py-4 px-6 text-center">
           <p className="text-xs text-muted-foreground font-mono">
-            Contract deployed • Owner: {owner.slice(0, 6)}...{owner.slice(-4)}
+            Contract: {contractAddr.slice(0, 10)}...{contractAddr.slice(-6)}
+            {owner && <> • Owner: {owner.slice(0, 6)}...{owner.slice(-4)}</>}
           </p>
         </div>
       )}
