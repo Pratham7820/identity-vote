@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '@/hooks/useWallet';
 import {
@@ -8,7 +8,10 @@ import {
   isElectionActive,
   getElection,
   getResults,
-} from '@/lib/mockBlockchain';
+  type Candidate,
+  type Voter,
+  type ElectionConfig,
+} from '@/lib/contractService';
 import { compareFaces } from '@/lib/faceRecognition';
 import { FaceCapture } from '@/components/FaceCapture';
 import { Button } from '@/components/ui/button';
@@ -21,6 +24,7 @@ import {
   XCircle,
   Shield,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,32 +36,64 @@ export default function VotePage() {
   const [step, setStep] = useState<Step>('connect');
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [voter, setVoter] = useState<Voter | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [election, setElectionState] = useState<ElectionConfig | null>(null);
+  const [active, setActive] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [voting, setVoting] = useState(false);
+  const [results, setResults] = useState<Candidate[]>([]);
 
-  const election = getElection();
-  const active = isElectionActive();
-  const voter = address ? getVoter(address) : null;
-  const candidates = getCandidates();
+  // Load election data
+  useEffect(() => {
+    async function load() {
+      try {
+        const [e, a, c] = await Promise.all([
+          getElection(),
+          isElectionActive(),
+          getCandidates(),
+        ]);
+        setElectionState(e);
+        setActive(a);
+        setCandidates(c);
+      } catch (err) {
+        console.error('Failed to load election data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   const handleConnect = async () => {
     const addr = await connect();
     if (!addr) return;
-    const v = getVoter(addr);
-    if (!v) {
-      setErrorMsg('Your wallet is not registered as a voter.');
+    setLoading(true);
+    try {
+      const v = await getVoter(addr);
+      if (!v) {
+        setErrorMsg('Your wallet is not registered as a voter.');
+        setStep('error');
+        return;
+      }
+      if (v.hasVoted) {
+        setErrorMsg('You have already cast your vote.');
+        setStep('error');
+        return;
+      }
+      if (!active) {
+        setErrorMsg('Election is not currently active.');
+        setStep('error');
+        return;
+      }
+      setVoter(v);
+      setStep('verify-face');
+    } catch (err) {
+      setErrorMsg('Failed to verify registration on-chain.');
       setStep('error');
-      return;
+    } finally {
+      setLoading(false);
     }
-    if (v.hasVoted) {
-      setErrorMsg('You have already cast your vote.');
-      setStep('error');
-      return;
-    }
-    if (!active) {
-      setErrorMsg('Election is not currently active.');
-      setStep('error');
-      return;
-    }
-    setStep('verify-face');
   };
 
   const handleFaceVerify = useCallback(
@@ -77,19 +113,32 @@ export default function VotePage() {
     [voter]
   );
 
-  const handleVote = () => {
-    if (!address || selectedCandidate === null) return;
-    const success = castVote(address, selectedCandidate);
-    if (success) {
+  const handleVote = async () => {
+    if (selectedCandidate === null) return;
+    setVoting(true);
+    try {
+      await castVote(selectedCandidate);
+      const r = await getResults();
+      setResults(r);
       setStep('done');
       toast.success('Vote cast successfully on-chain!');
-    } else {
-      toast.error('Failed to cast vote');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Transaction failed';
+      toast.error(message);
+    } finally {
+      setVoting(false);
     }
   };
 
-  const results = getResults();
   const totalVotes = results.reduce((s, c) => s + c.voteCount, 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -100,11 +149,10 @@ export default function VotePage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Voting Booth</h1>
-            {election.title && <p className="text-xs text-muted-foreground">{election.title}</p>}
+            {election?.title && <p className="text-xs text-muted-foreground">{election.title}</p>}
           </div>
         </div>
 
-        {/* Step: Connect Wallet */}
         {step === 'connect' && (
           <Card className="glass">
             <CardContent className="p-8 text-center space-y-6">
@@ -112,7 +160,7 @@ export default function VotePage() {
               <h2 className="text-xl font-bold">Step 1: Connect Your Wallet</h2>
               <p className="text-muted-foreground">Connect the MetaMask wallet registered by the admin to begin voting</p>
               {!active && (
-                <div className="flex items-center gap-2 justify-center text-warning text-sm">
+                <div className="flex items-center gap-2 justify-center text-destructive text-sm">
                   <AlertTriangle className="w-4 h-4" />
                   Election is not currently active
                 </div>
@@ -125,7 +173,6 @@ export default function VotePage() {
           </Card>
         )}
 
-        {/* Step: Face Verification */}
         {step === 'verify-face' && (
           <Card className="glass">
             <CardHeader>
@@ -136,14 +183,13 @@ export default function VotePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground text-sm">
-                Verify your identity by capturing your face. It will be compared against your registration data.
+                Verify your identity by capturing your face. It will be compared against your on-chain registration data.
               </p>
               <FaceCapture onCapture={handleFaceVerify} mode="verify" />
             </CardContent>
           </Card>
         )}
 
-        {/* Step: Cast Vote */}
         {step === 'vote' && (
           <Card className="glass">
             <CardHeader>
@@ -153,7 +199,7 @@ export default function VotePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <p className="text-muted-foreground text-sm">Select your candidate and confirm your vote. This action is irreversible.</p>
+              <p className="text-muted-foreground text-sm">Select your candidate and confirm. This sends an irreversible transaction.</p>
               <div className="space-y-3">
                 {candidates.map((c) => (
                   <button
@@ -170,22 +216,21 @@ export default function VotePage() {
                   </button>
                 ))}
               </div>
-              <Button onClick={handleVote} className="w-full glow-primary" size="lg" disabled={selectedCandidate === null}>
-                <Vote className="w-5 h-5 mr-2" />
-                Confirm Vote
+              <Button onClick={handleVote} className="w-full glow-primary" size="lg" disabled={selectedCandidate === null || voting}>
+                {voting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Vote className="w-5 h-5 mr-2" />}
+                {voting ? 'Submitting Transaction...' : 'Confirm Vote'}
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Step: Done */}
         {step === 'done' && (
           <Card className="glass">
             <CardContent className="p-8 text-center space-y-6">
               <CheckCircle className="w-16 h-16 mx-auto text-primary" />
               <h2 className="text-xl font-bold">Vote Cast Successfully!</h2>
               <p className="text-muted-foreground text-sm">
-                Your vote has been recorded on the blockchain. Thank you for participating.
+                Your vote has been recorded on the Ethereum blockchain. Thank you for participating.
               </p>
               <div className="space-y-3 text-left">
                 <h3 className="text-sm font-semibold text-center">Live Results</h3>
@@ -209,7 +254,6 @@ export default function VotePage() {
           </Card>
         )}
 
-        {/* Error */}
         {step === 'error' && (
           <Card className="glass">
             <CardContent className="p-8 text-center space-y-4">

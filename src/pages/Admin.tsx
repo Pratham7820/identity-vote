@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '@/hooks/useWallet';
 import {
@@ -15,7 +15,7 @@ import {
   type Candidate,
   type Voter,
   type ElectionConfig,
-} from '@/lib/mockBlockchain';
+} from '@/lib/contractService';
 import { FaceCapture } from '@/components/FaceCapture';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,17 +31,40 @@ import {
   BarChart3,
   UserPlus,
   Shield,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Admin() {
   const { address, connect } = useWallet();
   const navigate = useNavigate();
-  const owner = getOwner();
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(true);
 
-  if (!owner) {
-    navigate('/');
-    return null;
+  useEffect(() => {
+    async function checkAccess() {
+      if (!address) {
+        setChecking(false);
+        return;
+      }
+      try {
+        const admin = await isOwner(address);
+        setAuthorized(admin);
+      } catch {
+        setAuthorized(false);
+      } finally {
+        setChecking(false);
+      }
+    }
+    checkAccess();
+  }, [address]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!address) {
@@ -59,7 +82,7 @@ export default function Admin() {
     );
   }
 
-  if (!isOwner(address)) {
+  if (!authorized) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <Card className="glass max-w-md w-full">
@@ -95,18 +118,10 @@ export default function Admin() {
             <TabsTrigger value="results"><BarChart3 className="w-4 h-4 mr-1" />Results</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="election">
-            <ElectionSetup />
-          </TabsContent>
-          <TabsContent value="candidates">
-            <CandidateManager />
-          </TabsContent>
-          <TabsContent value="voters">
-            <VoterRegistration />
-          </TabsContent>
-          <TabsContent value="results">
-            <ResultsView />
-          </TabsContent>
+          <TabsContent value="election"><ElectionSetup /></TabsContent>
+          <TabsContent value="candidates"><CandidateManager /></TabsContent>
+          <TabsContent value="voters"><VoterRegistration /></TabsContent>
+          <TabsContent value="results"><ResultsView /></TabsContent>
         </Tabs>
       </div>
     </div>
@@ -114,17 +129,56 @@ export default function Admin() {
 }
 
 function ElectionSetup() {
-  const existing = getElection();
-  const [config, setConfig] = useState<ElectionConfig>(existing);
+  const [title, setTitle] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isActive, setIsActive] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const save = () => {
-    if (!config.title || !config.startDate || !config.endDate) {
+  useEffect(() => {
+    async function load() {
+      try {
+        const e = await getElection();
+        setTitle(e.title);
+        setIsActive(e.isActive);
+        if (e.startTime > 0) {
+          setStartDate(new Date(e.startTime * 1000).toISOString().slice(0, 16));
+          setEndDate(new Date(e.endTime * 1000).toISOString().slice(0, 16));
+        }
+      } catch (err) {
+        console.error('Failed to load election:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const save = async () => {
+    if (!title || !startDate || !endDate) {
       toast.error('Fill all fields');
       return;
     }
-    setElection(config);
-    toast.success('Election configuration saved on-chain');
+    setSaving(true);
+    try {
+      const config: ElectionConfig = {
+        title,
+        startTime: Math.floor(new Date(startDate).getTime() / 1000),
+        endTime: Math.floor(new Date(endDate).getTime() / 1000),
+        isActive,
+      };
+      await setElection(config);
+      toast.success('Election configuration saved on-chain!');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Transaction failed';
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <Card className="glass">
@@ -134,54 +188,82 @@ function ElectionSetup() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Election Title</Label>
-          <Input value={config.title} onChange={(e) => setConfig({ ...config, title: e.target.value })} placeholder="General Election 2026" />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="General Election 2026" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Start Date & Time</Label>
-            <Input type="datetime-local" value={config.startDate} onChange={(e) => setConfig({ ...config, startDate: e.target.value })} />
+            <Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>End Date & Time</Label>
-            <Input type="datetime-local" value={config.endDate} onChange={(e) => setConfig({ ...config, endDate: e.target.value })} />
+            <Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={config.isActive}
-              onChange={(e) => setConfig({ ...config, isActive: e.target.checked })}
-              className="accent-[hsl(var(--primary))]"
-            />
-            <span className="text-sm">Election Active</span>
-          </label>
-        </div>
-        <Button onClick={save} className="glow-primary">Save Configuration</Button>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="accent-[hsl(var(--primary))]" />
+          <span className="text-sm">Election Active</span>
+        </label>
+        <Button onClick={save} className="glow-primary" disabled={saving}>
+          {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          {saving ? 'Sending Transaction...' : 'Save Configuration'}
+        </Button>
       </CardContent>
     </Card>
   );
 }
 
 function CandidateManager() {
-  const [candidates, setCandidates] = useState<Candidate[]>(getCandidates());
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [name, setName] = useState('');
   const [party, setParty] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
-  const handleAdd = () => {
+  useEffect(() => {
+    loadCandidates();
+  }, []);
+
+  async function loadCandidates() {
+    try {
+      const c = await getCandidates();
+      setCandidates(c);
+    } catch (err) {
+      console.error('Failed to load candidates:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleAdd = async () => {
     if (!name || !party) { toast.error('Fill name and party'); return; }
-    addCandidate(name, party);
-    setCandidates(getCandidates());
-    setName('');
-    setParty('');
-    toast.success(`Candidate "${name}" added`);
+    setAdding(true);
+    try {
+      await addCandidate(name, party);
+      await loadCandidates();
+      setName('');
+      setParty('');
+      toast.success(`Candidate "${name}" added on-chain!`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Transaction failed';
+      toast.error(message);
+    } finally {
+      setAdding(false);
+    }
   };
 
-  const handleRemove = (id: number) => {
-    removeCandidate(id);
-    setCandidates(getCandidates());
-    toast.success('Candidate removed');
+  const handleRemove = async (id: number) => {
+    try {
+      await removeCandidate(id);
+      await loadCandidates();
+      toast.success('Candidate removed');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Transaction failed';
+      toast.error(message);
+    }
   };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <Card className="glass">
@@ -192,7 +274,9 @@ function CandidateManager() {
         <div className="flex gap-3">
           <Input placeholder="Candidate name" value={name} onChange={(e) => setName(e.target.value)} />
           <Input placeholder="Party" value={party} onChange={(e) => setParty(e.target.value)} />
-          <Button onClick={handleAdd} className="glow-primary shrink-0"><Plus className="w-4 h-4" /></Button>
+          <Button onClick={handleAdd} className="glow-primary shrink-0" disabled={adding}>
+            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          </Button>
         </div>
         <div className="space-y-2">
           {candidates.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No candidates added yet</p>}
@@ -212,30 +296,50 @@ function CandidateManager() {
 }
 
 function VoterRegistration() {
-  const [voters, setVoters] = useState<Voter[]>(getAllVoters());
+  const [voters, setVoters] = useState<Voter[]>([]);
   const [form, setForm] = useState({ name: '', age: '', walletAddress: '' });
   const [faceData, setFaceData] = useState<number[] | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
 
-  const handleRegister = () => {
+  useEffect(() => {
+    loadVoters();
+  }, []);
+
+  async function loadVoters() {
+    try {
+      const v = await getAllVoters();
+      setVoters(v);
+    } catch (err) {
+      console.error('Failed to load voters:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleRegister = async () => {
     if (!form.name || !form.age || !form.walletAddress) { toast.error('Fill all fields'); return; }
     if (!faceData) { toast.error('Face capture required'); return; }
     if (parseInt(form.age) < 18) { toast.error('Voter must be 18+'); return; }
 
-    registerVoter({
-      name: form.name,
-      age: parseInt(form.age),
-      walletAddress: form.walletAddress,
-      faceDescriptor: faceData,
-      isRegistered: true,
-      hasVoted: false,
-    });
-    setVoters(getAllVoters());
-    setForm({ name: '', age: '', walletAddress: '' });
-    setFaceData(null);
-    setShowCamera(false);
-    toast.success(`Voter "${form.name}" registered on-chain`);
+    setRegistering(true);
+    try {
+      await registerVoter(form.walletAddress, form.name, parseInt(form.age), faceData);
+      await loadVoters();
+      setForm({ name: '', age: '', walletAddress: '' });
+      setFaceData(null);
+      setShowCamera(false);
+      toast.success(`Voter "${form.name}" registered on-chain!`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Transaction failed';
+      toast.error(message);
+    } finally {
+      setRegistering(false);
+    }
   };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <Card className="glass">
@@ -276,7 +380,10 @@ function VoterRegistration() {
             )}
           </div>
         </div>
-        <Button onClick={handleRegister} className="w-full glow-primary" disabled={!faceData}>Register Voter</Button>
+        <Button onClick={handleRegister} className="w-full glow-primary" disabled={!faceData || registering}>
+          {registering && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          {registering ? 'Sending Transaction...' : 'Register Voter'}
+        </Button>
 
         <div className="border-t border-border pt-4">
           <h3 className="text-sm font-semibold mb-3">Registered Voters ({voters.length})</h3>
@@ -298,9 +405,28 @@ function VoterRegistration() {
 }
 
 function ResultsView() {
-  const results = getResults();
+  const [results, setResults] = useState<Candidate[]>([]);
+  const [election, setElectionState] = useState<ElectionConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [r, e] = await Promise.all([getResults(), getElection()]);
+        setResults(r);
+        setElectionState(e);
+      } catch (err) {
+        console.error('Failed to load results:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
   const totalVotes = results.reduce((s, c) => s + c.voteCount, 0);
-  const election = getElection();
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <Card className="glass">
@@ -308,7 +434,7 @@ function ResultsView() {
         <CardTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-primary" />Election Results</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {election.title && (
+        {election?.title && (
           <p className="text-muted-foreground text-sm">{election.title} • Total votes: {totalVotes}</p>
         )}
         {results.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No candidates registered yet</p>}
