@@ -155,6 +155,8 @@ export default function VotePage() {
           </div>
         </div>
 
+        <LiveStats />
+
         {step === 'connect' && (
           <Card className="glass">
             <CardContent className="p-8 text-center space-y-6">
