@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { loadModels, getFaceDescriptor } from '@/lib/faceRecognition';
+import { loadModels, getFaceDescriptor, getAveragedFaceDescriptor } from '@/lib/faceRecognition';
 import { Button } from '@/components/ui/button';
 import { Camera, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
@@ -10,8 +10,9 @@ interface FaceCaptureProps {
 
 export function FaceCapture({ onCapture, mode = 'register' }: FaceCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'captured' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'capturing' | 'captured' | 'error'>('idle');
   const [error, setError] = useState('');
+  const [progress, setProgress] = useState('');
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = useCallback(async () => {
@@ -34,18 +35,46 @@ export function FaceCapture({ onCapture, mode = 'register' }: FaceCaptureProps) 
 
   const capture = useCallback(async () => {
     if (!videoRef.current) return;
-    setStatus('loading');
-    const descriptor = await getFaceDescriptor(videoRef.current);
+    setStatus('capturing');
+    setError('');
+
+    let descriptor: Float32Array | null = null;
+
+    if (mode === 'register') {
+      // Take 5 averaged samples for a robust on-chain template.
+      // This makes verification work even when the user later wears/removes glasses.
+      setProgress('Capturing samples (1/5)...');
+      const samples: Float32Array[] = [];
+      for (let i = 0; i < 5; i++) {
+        setProgress(`Capturing samples (${i + 1}/5)... hold still`);
+        const d = await getFaceDescriptor(videoRef.current);
+        if (d) samples.push(d);
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (samples.length >= 3) {
+        const len = samples[0].length;
+        const avg = new Float32Array(len);
+        for (const d of samples) for (let i = 0; i < len; i++) avg[i] += d[i];
+        for (let i = 0; i < len; i++) avg[i] /= samples.length;
+        descriptor = avg;
+      }
+    } else {
+      // Verification: average 3 quick samples for stability
+      setProgress('Verifying...');
+      descriptor = await getAveragedFaceDescriptor(videoRef.current, 3, 200);
+    }
+
+    setProgress('');
+
     if (descriptor) {
       onCapture(Array.from(descriptor));
       setStatus('captured');
-      // Stop camera
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current?.getTracks().forEach((t) => t.stop());
     } else {
-      setError('No face detected. Please ensure your face is clearly visible.');
+      setError('No face detected. Ensure good lighting and that your face is clearly visible.');
       setStatus('ready');
     }
-  }, [onCapture]);
+  }, [onCapture, mode]);
 
   useEffect(() => {
     return () => {
@@ -61,7 +90,7 @@ export function FaceCapture({ onCapture, mode = 'register' }: FaceCaptureProps) 
           className="w-full h-full object-cover"
           muted
           playsInline
-          style={{ display: status === 'ready' || status === 'loading' ? 'block' : 'none', transform: 'scaleX(-1)' }}
+          style={{ display: status === 'ready' || status === 'loading' || status === 'capturing' ? 'block' : 'none', transform: 'scaleX(-1)' }}
         />
         {status === 'idle' && (
           <div className="text-center space-y-3 p-6">
@@ -69,6 +98,11 @@ export function FaceCapture({ onCapture, mode = 'register' }: FaceCaptureProps) 
             <p className="text-muted-foreground text-sm">
               {mode === 'register' ? 'Capture face data for voter registration' : 'Verify your identity to cast vote'}
             </p>
+            {mode === 'register' && (
+              <p className="text-xs text-muted-foreground">
+                Tip: capture without glasses for best results — verification will still work with or without them.
+              </p>
+            )}
             <Button onClick={startCamera} className="glow-primary">
               Start Camera
             </Button>
@@ -93,16 +127,17 @@ export function FaceCapture({ onCapture, mode = 'register' }: FaceCaptureProps) 
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/50 animate-scan-line" />
           </div>
         )}
-        {status === 'loading' && (
-          <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+        {(status === 'loading' || status === 'capturing') && (
+          <div className="absolute inset-0 bg-background/60 flex flex-col items-center justify-center gap-2">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            {progress && <p className="text-sm text-primary font-medium">{progress}</p>}
           </div>
         )}
       </div>
       {status === 'ready' && (
         <Button onClick={capture} className="w-full glow-primary">
           <Camera className="w-4 h-4 mr-2" />
-          {mode === 'register' ? 'Capture Face' : 'Verify Face'}
+          {mode === 'register' ? 'Capture Face (5 samples)' : 'Verify Face'}
         </Button>
       )}
       {error && status === 'ready' && (
