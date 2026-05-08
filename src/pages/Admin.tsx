@@ -290,11 +290,31 @@ function CandidateManager() {
         <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" />Manage Candidates</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex gap-3">
-          <Input placeholder="Candidate name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="Party" value={party} onChange={(e) => setParty(e.target.value)} />
-          <Button onClick={handleAdd} className="glow-primary shrink-0" disabled={adding}>
-            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input placeholder="Candidate name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Select value={partySelection} onValueChange={setPartySelection}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select party" />
+              </SelectTrigger>
+              <SelectContent>
+                {INDIAN_PARTIES.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+                <SelectItem value="Other">Other (specify)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {partySelection === 'Other' && (
+            <Input
+              placeholder="Enter party name"
+              value={otherParty}
+              onChange={(e) => setOtherParty(e.target.value)}
+            />
+          )}
+          <Button onClick={handleAdd} className="glow-primary w-full" disabled={adding || !name || !party}>
+            {adding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+            Add Candidate
           </Button>
         </div>
         <div className="space-y-2">
