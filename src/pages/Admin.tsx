@@ -22,6 +22,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const INDIAN_PARTIES = [
+  'Bharatiya Janata Party (BJP)',
+  'Indian National Congress (INC)',
+  'Aam Aadmi Party (AAP)',
+  'All India Trinamool Congress (TMC)',
+  'Communist Party of India (Marxist) (CPI-M)',
+  'Bahujan Samaj Party (BSP)',
+  'Samajwadi Party (SP)',
+  'Shiv Sena',
+  'Nationalist Congress Party (NCP)',
+  'Dravida Munnetra Kazhagam (DMK)',
+  'Independent',
+];
 import {
   ArrowLeft,
   Plus,
@@ -216,9 +231,12 @@ function ElectionSetup() {
 function CandidateManager() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [name, setName] = useState('');
-  const [party, setParty] = useState('');
+  const [partySelection, setPartySelection] = useState('');
+  const [otherParty, setOtherParty] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+
+  const party = partySelection === 'Other' ? otherParty.trim() : partySelection;
 
   useEffect(() => {
     loadCandidates();
@@ -242,7 +260,8 @@ function CandidateManager() {
       await addCandidate(name, party);
       await loadCandidates();
       setName('');
-      setParty('');
+      setPartySelection('');
+      setOtherParty('');
       toast.success(`Candidate "${name}" added on-chain!`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Transaction failed';
@@ -271,11 +290,31 @@ function CandidateManager() {
         <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" />Manage Candidates</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex gap-3">
-          <Input placeholder="Candidate name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="Party" value={party} onChange={(e) => setParty(e.target.value)} />
-          <Button onClick={handleAdd} className="glow-primary shrink-0" disabled={adding}>
-            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input placeholder="Candidate name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Select value={partySelection} onValueChange={setPartySelection}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select party" />
+              </SelectTrigger>
+              <SelectContent>
+                {INDIAN_PARTIES.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+                <SelectItem value="Other">Other (specify)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {partySelection === 'Other' && (
+            <Input
+              placeholder="Enter party name"
+              value={otherParty}
+              onChange={(e) => setOtherParty(e.target.value)}
+            />
+          )}
+          <Button onClick={handleAdd} className="glow-primary w-full" disabled={adding || !name || !party}>
+            {adding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+            Add Candidate
           </Button>
         </div>
         <div className="space-y-2">
