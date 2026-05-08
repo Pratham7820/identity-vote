@@ -260,7 +260,8 @@ function CandidateManager() {
       await addCandidate(name, party);
       await loadCandidates();
       setName('');
-      setParty('');
+      setPartySelection('');
+      setOtherParty('');
       toast.success(`Candidate "${name}" added on-chain!`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Transaction failed';
