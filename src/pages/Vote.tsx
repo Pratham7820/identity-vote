@@ -14,6 +14,8 @@ import {
 } from '@/lib/contractService';
 import { compareFaces } from '@/lib/faceRecognition';
 import { FaceCapture } from '@/components/FaceCapture';
+import { LiveStats } from '@/components/LiveStats';
+import { ResultsChart } from '@/components/ResultsChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
