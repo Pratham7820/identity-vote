@@ -231,9 +231,12 @@ function ElectionSetup() {
 function CandidateManager() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [name, setName] = useState('');
-  const [party, setParty] = useState('');
+  const [partySelection, setPartySelection] = useState('');
+  const [otherParty, setOtherParty] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+
+  const party = partySelection === 'Other' ? otherParty.trim() : partySelection;
 
   useEffect(() => {
     loadCandidates();
