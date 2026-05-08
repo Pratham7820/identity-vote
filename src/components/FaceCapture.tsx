@@ -93,16 +93,19 @@ export function FaceCapture({ onCapture, mode = 'register' }: FaceCaptureProps) 
           style={{ display: status === 'ready' || status === 'loading' || status === 'capturing' ? 'block' : 'none', transform: 'scaleX(-1)' }}
         />
         {status === 'idle' && (
-          <div className="text-center space-y-3 p-6">
+          <div className="text-center space-y-3 p-6 max-w-sm">
             <Camera className="w-12 h-12 mx-auto text-muted-foreground" />
             <p className="text-muted-foreground text-sm">
               {mode === 'register' ? 'Capture face data for voter registration' : 'Verify your identity to cast vote'}
             </p>
-            {mode === 'register' && (
-              <p className="text-xs text-muted-foreground">
-                Tip: capture without glasses for best results — verification will still work with or without them.
-              </p>
-            )}
+            <ul className="text-[11px] text-muted-foreground text-left space-y-1 bg-secondary/40 rounded-lg p-3 border border-border">
+              <li>💡 Use bright, even lighting — avoid backlight from windows.</li>
+              <li>👓 {mode === 'register' ? 'Capture without glasses if possible — verification still works with them on.' : 'Glasses, masks or beards are tolerated, but a clear face is best.'}</li>
+              <li>📏 Keep face centered, ~30cm from the camera, looking straight ahead.</li>
+              <li>🙂 Neutral expression, no extreme angles or shadows.</li>
+              <li>🚫 Remove hats or anything covering forehead/eyebrows.</li>
+              {mode === 'register' && <li>⏱ Hold still — we capture 5 samples for a robust template.</li>}
+            </ul>
             <Button onClick={startCamera} className="glow-primary">
               Start Camera
             </Button>

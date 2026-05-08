@@ -14,6 +14,8 @@ import {
 } from '@/lib/contractService';
 import { compareFaces } from '@/lib/faceRecognition';
 import { FaceCapture } from '@/components/FaceCapture';
+import { LiveStats } from '@/components/LiveStats';
+import { ResultsChart } from '@/components/ResultsChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -153,6 +155,8 @@ export default function VotePage() {
           </div>
         </div>
 
+        <LiveStats />
+
         {step === 'connect' && (
           <Card className="glass">
             <CardContent className="p-8 text-center space-y-6">
@@ -232,22 +236,25 @@ export default function VotePage() {
               <p className="text-muted-foreground text-sm">
                 Your vote has been recorded on the Ethereum blockchain. Thank you for participating.
               </p>
-              <div className="space-y-3 text-left">
+              <div className="space-y-4 text-left">
                 <h3 className="text-sm font-semibold text-center">Live Results</h3>
-                {results.map((c) => {
-                  const pct = totalVotes > 0 ? (c.voteCount / totalVotes) * 100 : 0;
-                  return (
-                    <div key={c.id} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>{c.name}</span>
-                        <span className="font-mono">{pct.toFixed(1)}%</span>
+                <ResultsChart results={results} />
+                <div className="space-y-3">
+                  {results.map((c, i) => {
+                    const pct = totalVotes > 0 ? (c.voteCount / totalVotes) * 100 : 0;
+                    return (
+                      <div key={c.id} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>{i === 0 && totalVotes > 0 && '🏆 '}{c.name} <span className="text-muted-foreground">({c.party})</span></span>
+                          <span className="font-mono">{c.voteCount} • {pct.toFixed(1)}%</span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                          <div className="h-full rounded-full gradient-chain transition-all duration-500" style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full rounded-full gradient-chain" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
               <Button variant="outline" onClick={() => navigate('/')}>Return Home</Button>
             </CardContent>

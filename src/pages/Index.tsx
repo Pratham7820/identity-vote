@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, Vote, Wallet, Hexagon, ArrowRight, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { LiveStats } from '@/components/LiveStats';
 
 export default function Index() {
   const { address, connect, isConnecting } = useWallet();
@@ -128,6 +129,12 @@ export default function Index() {
           )}
         </div>
       </div>
+
+      {isConnected && (
+        <div className="px-6 pb-12 max-w-5xl mx-auto w-full">
+          <LiveStats />
+        </div>
+      )}
 
       {/* Features */}
       <div className="border-t border-border py-16 px-6">

@@ -17,6 +17,8 @@ import {
   type ElectionConfig,
 } from '@/lib/contractService';
 import { FaceCapture } from '@/components/FaceCapture';
+import { LiveStats } from '@/components/LiveStats';
+import { ResultsChart } from '@/components/ResultsChart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -124,6 +126,8 @@ export default function Admin() {
             <p className="text-xs text-muted-foreground font-mono">{address.slice(0, 6)}...{address.slice(-4)}</p>
           </div>
         </div>
+
+        <LiveStats />
 
         <Tabs defaultValue="election" className="space-y-6">
           <TabsList className="bg-secondary">
@@ -477,6 +481,7 @@ function ResultsView() {
           <p className="text-muted-foreground text-sm">{election.title} • Total votes: {totalVotes}</p>
         )}
         {results.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No candidates registered yet</p>}
+        {results.length > 0 && <ResultsChart results={results} />}
         <div className="space-y-3">
           {results.map((c, i) => {
             const pct = totalVotes > 0 ? (c.voteCount / totalVotes) * 100 : 0;
