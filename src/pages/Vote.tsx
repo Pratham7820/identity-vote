@@ -246,8 +246,13 @@ export default function VotePage() {
                         : 'border-border bg-secondary/30 hover:border-primary/50'
                     }`}
                   >
-                    <span className="font-semibold">{c.name}</span>
-                    <span className="text-muted-foreground text-sm ml-2">({c.party})</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl" aria-hidden>{getPartySymbol(c.party)}</span>
+                      <div>
+                        <div className="font-semibold">{c.name}</div>
+                        <div className="text-muted-foreground text-xs">{c.party}</div>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
