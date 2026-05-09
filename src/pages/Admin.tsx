@@ -26,19 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const INDIAN_PARTIES = [
-  'Bharatiya Janata Party (BJP)',
-  'Indian National Congress (INC)',
-  'Aam Aadmi Party (AAP)',
-  'All India Trinamool Congress (TMC)',
-  'Communist Party of India (Marxist) (CPI-M)',
-  'Bahujan Samaj Party (BSP)',
-  'Samajwadi Party (SP)',
-  'Shiv Sena',
-  'Nationalist Congress Party (NCP)',
-  'Dravida Munnetra Kazhagam (DMK)',
-  'Independent',
-];
+import { INDIAN_PARTIES, getPartySymbol } from '@/lib/parties';
 import {
   ArrowLeft,
   Plus,
@@ -303,7 +291,7 @@ function CandidateManager() {
               </SelectTrigger>
               <SelectContent>
                 {INDIAN_PARTIES.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                  <SelectItem key={p} value={p}>{getPartySymbol(p)} {p}</SelectItem>
                 ))}
                 <SelectItem value="Other">Other (specify)</SelectItem>
               </SelectContent>
@@ -325,9 +313,12 @@ function CandidateManager() {
           {candidates.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No candidates added yet</p>}
           {candidates.map((c) => (
             <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-              <div>
-                <span className="font-medium">{c.name}</span>
-                <span className="text-muted-foreground text-sm ml-2">({c.party})</span>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl" aria-hidden>{getPartySymbol(c.party)}</span>
+                <div>
+                  <div className="font-medium">{c.name}</div>
+                  <div className="text-muted-foreground text-xs">{c.party}</div>
+                </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => handleRemove(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
             </div>
@@ -489,7 +480,7 @@ function ResultsView() {
               <div key={c.id} className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium">
-                    {i === 0 && totalVotes > 0 && '🏆 '}{c.name} <span className="text-muted-foreground">({c.party})</span>
+                    {i === 0 && totalVotes > 0 && '🏆 '}{getPartySymbol(c.party)} {c.name} <span className="text-muted-foreground">({c.party})</span>
                   </span>
                   <span className="font-mono">{c.voteCount} votes ({pct.toFixed(1)}%)</span>
                 </div>

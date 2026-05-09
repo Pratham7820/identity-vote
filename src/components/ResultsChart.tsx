@@ -1,5 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import type { Candidate } from '@/lib/contractService';
+import { getPartySymbol } from '@/lib/parties';
 
 const COLORS = [
   'hsl(160, 84%, 45%)',
@@ -19,7 +20,7 @@ interface ResultsChartProps {
 export function ResultsChart({ results }: ResultsChartProps) {
   if (results.length === 0) return null;
   const data = results.map((c) => ({
-    name: c.name,
+    name: `${getPartySymbol(c.party)} ${c.name}`,
     party: c.party,
     votes: c.voteCount,
   }));

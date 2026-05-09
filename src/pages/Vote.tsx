@@ -13,6 +13,7 @@ import {
   type ElectionConfig,
 } from '@/lib/contractService';
 import { compareFaces } from '@/lib/faceRecognition';
+import { getPartySymbol } from '@/lib/parties';
 import { FaceCapture } from '@/components/FaceCapture';
 import { LiveStats } from '@/components/LiveStats';
 import { ResultsChart } from '@/components/ResultsChart';
@@ -177,6 +178,36 @@ export default function VotePage() {
           </Card>
         )}
 
+        {voter && (step === 'verify-face' || step === 'vote') && (
+          <Card className="glass">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                Registered Voter Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">Name</div>
+                <div className="font-medium truncate">{voter.name}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Age</div>
+                <div className="font-medium">{voter.age}</div>
+              </div>
+              <div className="col-span-2">
+                <div className="text-xs text-muted-foreground">Wallet</div>
+                <div className="font-mono text-xs truncate">{voter.walletAddress}</div>
+              </div>
+              <div className="col-span-2 sm:col-span-4 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Status:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">Verified Registered</span>
+                {voter.hasVoted && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Already Voted</span>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {step === 'verify-face' && (
           <Card className="glass">
             <CardHeader>
@@ -215,8 +246,13 @@ export default function VotePage() {
                         : 'border-border bg-secondary/30 hover:border-primary/50'
                     }`}
                   >
-                    <span className="font-semibold">{c.name}</span>
-                    <span className="text-muted-foreground text-sm ml-2">({c.party})</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl" aria-hidden>{getPartySymbol(c.party)}</span>
+                      <div>
+                        <div className="font-semibold">{c.name}</div>
+                        <div className="text-muted-foreground text-xs">{c.party}</div>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -245,7 +281,7 @@ export default function VotePage() {
                     return (
                       <div key={c.id} className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span>{i === 0 && totalVotes > 0 && '🏆 '}{c.name} <span className="text-muted-foreground">({c.party})</span></span>
+                          <span>{i === 0 && totalVotes > 0 && '🏆 '}{getPartySymbol(c.party)} {c.name} <span className="text-muted-foreground">({c.party})</span></span>
                           <span className="font-mono">{c.voteCount} • {pct.toFixed(1)}%</span>
                         </div>
                         <div className="h-2 bg-secondary rounded-full overflow-hidden">
