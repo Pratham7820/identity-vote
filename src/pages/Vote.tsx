@@ -178,6 +178,36 @@ export default function VotePage() {
           </Card>
         )}
 
+        {voter && (step === 'verify-face' || step === 'vote') && (
+          <Card className="glass">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                Registered Voter Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">Name</div>
+                <div className="font-medium truncate">{voter.name}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Age</div>
+                <div className="font-medium">{voter.age}</div>
+              </div>
+              <div className="col-span-2">
+                <div className="text-xs text-muted-foreground">Wallet</div>
+                <div className="font-mono text-xs truncate">{voter.walletAddress}</div>
+              </div>
+              <div className="col-span-2 sm:col-span-4 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Status:</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">Verified Registered</span>
+                {voter.hasVoted && <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Already Voted</span>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {step === 'verify-face' && (
           <Card className="glass">
             <CardHeader>
