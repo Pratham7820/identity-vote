@@ -291,7 +291,7 @@ function CandidateManager() {
               </SelectTrigger>
               <SelectContent>
                 {INDIAN_PARTIES.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                  <SelectItem key={p} value={p}>{getPartySymbol(p)} {p}</SelectItem>
                 ))}
                 <SelectItem value="Other">Other (specify)</SelectItem>
               </SelectContent>
