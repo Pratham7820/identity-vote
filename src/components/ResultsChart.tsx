@@ -20,7 +20,7 @@ interface ResultsChartProps {
 export function ResultsChart({ results }: ResultsChartProps) {
   if (results.length === 0) return null;
   const data = results.map((c) => ({
-    name: c.name,
+    name: `${getPartySymbol(c.party)} ${c.name}`,
     party: c.party,
     votes: c.voteCount,
   }));
