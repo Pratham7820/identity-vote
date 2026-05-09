@@ -480,7 +480,7 @@ function ResultsView() {
               <div key={c.id} className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium">
-                    {i === 0 && totalVotes > 0 && '🏆 '}{c.name} <span className="text-muted-foreground">({c.party})</span>
+                    {i === 0 && totalVotes > 0 && '🏆 '}{getPartySymbol(c.party)} {c.name} <span className="text-muted-foreground">({c.party})</span>
                   </span>
                   <span className="font-mono">{c.voteCount} votes ({pct.toFixed(1)}%)</span>
                 </div>
