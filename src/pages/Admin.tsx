@@ -313,9 +313,12 @@ function CandidateManager() {
           {candidates.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No candidates added yet</p>}
           {candidates.map((c) => (
             <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-              <div>
-                <span className="font-medium">{c.name}</span>
-                <span className="text-muted-foreground text-sm ml-2">({c.party})</span>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl" aria-hidden>{getPartySymbol(c.party)}</span>
+                <div>
+                  <div className="font-medium">{c.name}</div>
+                  <div className="text-muted-foreground text-xs">{c.party}</div>
+                </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => handleRemove(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
             </div>
