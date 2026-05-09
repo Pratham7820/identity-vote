@@ -13,6 +13,7 @@ import {
   type ElectionConfig,
 } from '@/lib/contractService';
 import { compareFaces } from '@/lib/faceRecognition';
+import { getPartySymbol } from '@/lib/parties';
 import { FaceCapture } from '@/components/FaceCapture';
 import { LiveStats } from '@/components/LiveStats';
 import { ResultsChart } from '@/components/ResultsChart';
