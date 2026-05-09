@@ -26,19 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const INDIAN_PARTIES = [
-  'Bharatiya Janata Party (BJP)',
-  'Indian National Congress (INC)',
-  'Aam Aadmi Party (AAP)',
-  'All India Trinamool Congress (TMC)',
-  'Communist Party of India (Marxist) (CPI-M)',
-  'Bahujan Samaj Party (BSP)',
-  'Samajwadi Party (SP)',
-  'Shiv Sena',
-  'Nationalist Congress Party (NCP)',
-  'Dravida Munnetra Kazhagam (DMK)',
-  'Independent',
-];
+import { INDIAN_PARTIES, getPartySymbol } from '@/lib/parties';
 import {
   ArrowLeft,
   Plus,
