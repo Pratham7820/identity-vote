@@ -281,7 +281,7 @@ export default function VotePage() {
                     return (
                       <div key={c.id} className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span>{i === 0 && totalVotes > 0 && '🏆 '}{c.name} <span className="text-muted-foreground">({c.party})</span></span>
+                          <span>{i === 0 && totalVotes > 0 && '🏆 '}{getPartySymbol(c.party)} {c.name} <span className="text-muted-foreground">({c.party})</span></span>
                           <span className="font-mono">{c.voteCount} • {pct.toFixed(1)}%</span>
                         </div>
                         <div className="h-2 bg-secondary rounded-full overflow-hidden">
