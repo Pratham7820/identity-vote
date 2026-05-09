@@ -156,7 +156,6 @@ export default function VotePage() {
           </div>
         </div>
 
-        <LiveStats />
 
         {step === 'connect' && (
           <Card className="glass">
@@ -245,14 +244,21 @@ export default function VotePage() {
                         ? 'border-primary bg-primary/10 glow-primary'
                         : 'border-border bg-secondary/30 hover:border-primary/50'
                     }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl" aria-hidden>{getPartySymbol(c.party)}</span>
-                      <div>
-                        <div className="font-semibold">{c.name}</div>
-                        <div className="text-muted-foreground text-xs">{c.party}</div>
+                  ><div className="flex items-center gap-3">
+                    <img
+                      src={getPartySymbol(c.party)}
+                      alt={c.party}
+                      className="w-10 h-10 object-contain"
+                    />
+                    <div>
+                      <div className="font-semibold text-white">
+                        {c.name}
+                      </div>
+                      <div className="text-muted-foreground text-xs">
+                        {c.party}
                       </div>
                     </div>
+                  </div>
                   </button>
                 ))}
               </div>
@@ -281,7 +287,22 @@ export default function VotePage() {
                     return (
                       <div key={c.id} className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span>{i === 0 && totalVotes > 0 && '🏆 '}{getPartySymbol(c.party)} {c.name} <span className="text-muted-foreground">({c.party})</span></span>
+                          <div className="flex items-center gap-2">
+                            {i === 0 && totalVotes > 0 && (
+                              <span>🏆</span>
+                            )}
+                            <img
+                              src={getPartySymbol(c.party)}
+                              alt={c.party}
+                              className="w-5 h-5 object-contain"
+                            />
+                            <span className="text-white">
+                              {c.name}
+                            </span>
+                            <span className="text-muted-foreground">
+                              ({c.party})
+                            </span>
+                          </div>
                           <span className="font-mono">{c.voteCount} • {pct.toFixed(1)}%</span>
                         </div>
                         <div className="h-2 bg-secondary rounded-full overflow-hidden">

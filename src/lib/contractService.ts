@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import EVotingABI from '@/contracts/EVotingABI.json';
 
 // Store the contract address — set after deployment
-const CONTRACT_ADDRESS_KEY = 'evoting_contract_address';
+const CONTRACT_ADDRESS_KEY = '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707';
 
 export function getContractAddress(): string | null {
   return localStorage.getItem(CONTRACT_ADDRESS_KEY);

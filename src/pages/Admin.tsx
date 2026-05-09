@@ -115,7 +115,6 @@ export default function Admin() {
           </div>
         </div>
 
-        <LiveStats />
 
         <Tabs defaultValue="election" className="space-y-6">
           <TabsList className="bg-secondary">
@@ -291,9 +290,21 @@ function CandidateManager() {
               </SelectTrigger>
               <SelectContent>
                 {INDIAN_PARTIES.map((p) => (
-                  <SelectItem key={p} value={p}>{getPartySymbol(p)} {p}</SelectItem>
+                  <SelectItem key={p} value={p}>
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={getPartySymbol(p)}
+                        alt={p}
+                        className="w-5 h-5 object-contain"
+                      />
+                      <span>{p}</span>
+                    </div>
+                  </SelectItem>
                 ))}
-                <SelectItem value="Other">Other (specify)</SelectItem>
+
+                <SelectItem value="Other">
+                  Other (specify)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -314,7 +325,12 @@ function CandidateManager() {
           {candidates.map((c) => (
             <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
               <div className="flex items-center gap-3">
-                <span className="text-2xl" aria-hidden>{getPartySymbol(c.party)}</span>
+                <img
+                    className="w-5 h-5 object-contain"
+                    aria-hidden
+                    src={getPartySymbol(c.party)}
+                    alt={c.party}
+                  />
                 <div>
                   <div className="font-medium">{c.name}</div>
                   <div className="text-muted-foreground text-xs">{c.party}</div>
@@ -479,9 +495,22 @@ function ResultsView() {
             return (
               <div key={c.id} className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="font-medium">
-                    {i === 0 && totalVotes > 0 && '🏆 '}{getPartySymbol(c.party)} {c.name} <span className="text-muted-foreground">({c.party})</span>
-                  </span>
+                  <div className="flex items-center gap-2 font-medium">
+                    {i === 0 && totalVotes > 0 && (
+                      <span>🏆</span>
+                    )}
+                    <img
+                      src={getPartySymbol(c.party)}
+                      alt={c.party}
+                      className="w-5 h-5 object-contain"
+                    />
+                    <span className="text-white">
+                      {c.name}
+                    </span>
+                    <span className="text-muted-foreground">
+                      ({c.party})
+                    </span>
+                  </div>
                   <span className="font-mono">{c.voteCount} votes ({pct.toFixed(1)}%)</span>
                 </div>
                 <div className="h-3 bg-secondary rounded-full overflow-hidden">

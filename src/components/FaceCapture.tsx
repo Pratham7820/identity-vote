@@ -84,7 +84,7 @@ export function FaceCapture({ onCapture, mode = 'register' }: FaceCaptureProps) 
 
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-lg border border-border bg-muted aspect-video flex items-center justify-center">
+      <div className="relative overflow-hidden rounded-lg border border-border bg-muted min-h-[520px] md:min-h-[420px] flex items-center justify-center">
         <video
           ref={videoRef}
           className="w-full h-full object-cover"
